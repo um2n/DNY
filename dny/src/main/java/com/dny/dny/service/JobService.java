@@ -44,12 +44,12 @@ public class JobService {
 
         return response.getResult().stream()
                 .filter(this::isEntry)
-                .filter(this::isItByNcs)
+                .filter(this::isItByTitleOrNcs)
                 .toList();
     }
 
     /**
-     * 신입 또는 신입·경력
+     * 신입 또는 신입·경력만 허용
      */
     private boolean isEntry(JobDto job) {
         String recrutSe = job.getRecrutSeNm();
@@ -57,13 +57,21 @@ public class JobService {
     }
 
     /**
-     * NCS 직무 분야 기준 IT 판별
+     * IT 직무 판단
+     * - 제목 OR NCS 직무 분야 중 하나라도 IT 키워드 포함 시 통과
      */
-    private boolean isItByNcs(JobDto job) {
-        String ncs = job.getNcsCdNmLst();
-        if (ncs == null) return false;
+    private boolean isItByTitleOrNcs(JobDto job) {
+        return containsItKeyword(job.getRecrutPbancTtl())
+                || containsItKeyword(job.getNcsCdNmLst());
+    }
 
-        String normalized = ncs.toLowerCase();
+    /**
+     * 문자열에 IT 키워드 포함 여부
+     */
+    private boolean containsItKeyword(String text) {
+        if (text == null) return false;
+
+        String normalized = text.toLowerCase();
 
         for (String keyword : IT_KEYWORDS) {
             if (normalized.contains(keyword)) {
