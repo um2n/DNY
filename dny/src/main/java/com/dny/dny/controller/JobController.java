@@ -20,4 +20,10 @@ public class JobController {
     public List<JobDto> getJobs() throws Exception {
         return jobService.getJobs();
     }
+
+    @GetMapping("/jobs/it")
+    public List<JobDto> getItJobs() {
+        return jobService.getItJobs();
+    }
+
 }

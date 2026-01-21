@@ -6,6 +6,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -37,4 +38,29 @@ public class JobService {
         return response.getResult();
 
     }
+
+    public List<JobDto> getItEntryJobs(List<JobDto> jobs) {
+        return jobs.stream()
+                .filter(this::isItJob)
+                .filter(this::isEntryOrEntryAndCareer)
+                .toList();
+    }
+
+    private boolean isItJob(JobDto job) {
+        // TODO: ncsCdNmLst 기준 IT 직무 판단
+        return true;
+    }
+
+
+    private boolean isEntryOrEntryAndCareer(JobDto job) {
+        String recrutSe = job.getRecrutSeNm();
+        if (recrutSe == null) return false;
+        return recrutSe.contains("신입");
+    }
+
+    public List<JobDto> getItJobs() {
+        return new ArrayList<>();
+    }
+
+
 }
