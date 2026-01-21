@@ -7,6 +7,44 @@ public class JobDto {
     private String pbancBgngYmd;    // 공고 시작일
     private String pbancEndYmd;     // 공고 마감일
     private String srcUrl;          // 공고 링크
+    private String workRgnNmLst;    // 지역
+    private String recrutNope;      // 인원
+
+    public String getRecrutNope() {
+        return recrutNope;
+    }
+
+    public void setRecrutNope(String recrutNope) {
+        this.recrutNope = recrutNope;
+    }
+
+    public String getRecrutSeNm() {
+        return recrutSeNm;
+    }
+
+    public void setRecrutSeNm(String recrutSeNm) {
+        this.recrutSeNm = recrutSeNm;
+    }
+
+    public String getNcsCdNmLst() {
+        return ncsCdNmLst;
+    }
+
+    public void setNcsCdNmLst(String ncsCdNmLst) {
+        this.ncsCdNmLst = ncsCdNmLst;
+    }
+
+    public String getHireTypeNmLst() {
+        return hireTypeNmLst;
+    }
+
+    public void setHireTypeNmLst(String hireTypeNmLst) {
+        this.hireTypeNmLst = hireTypeNmLst;
+    }
+
+    private String recrutSeNm;      // 직무
+    private String ncsCdNmLst;      // 경력
+    private String hireTypeNmLst;   // 채용구분
 
     // getter / setter
     public String getInstNm() {
@@ -19,6 +57,14 @@ public class JobDto {
 
     public String getRecrutPbancTtl() {
         return recrutPbancTtl;
+    }
+
+    public String getWorkRgnNmLst() {
+        return workRgnNmLst;
+    }
+
+    public void setWorkRgnNmLst(String workRgnNmLst) {
+        this.workRgnNmLst = workRgnNmLst;
     }
 
     public void setRecrutPbancTtl(String recrutPbancTtl) {
