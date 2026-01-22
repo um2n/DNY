@@ -17,8 +17,7 @@ public class JobService {
             "https://apis.data.go.kr/1051000/recruitment/list";
 
     private static final String SERVICE_KEY =
-            "985c21b05bf528922cc657755c1fdc9854c0d0b94de3246b42315748f66a8acc";
-
+            "a220e2b32572f4ab1a598e9556bf649adbbe57b3a95b5c1b84ec4c9a7f01973f";
     private static final String[] IT_KEYWORDS = {
             "정보", "전산", "it", "소프트웨어", "시스템",
             "데이터", "정보보안", "정보보호", "정보화",
