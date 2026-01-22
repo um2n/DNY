@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>공고 목록</title>
+</head>
+<body>
+<h2>공고 목록</h2>
+<ul id="list"></ul>
+
+<script>
+    fetch("/jobs/it")
+      .then(res => res.json())
+      .then(data => {
+        data.forEach(job => {
+          const li = document.createElement("li");
+          li.innerText = job.recrutPbancTtl;
+          document.getElementById("list").appendChild(li);
+        });
+      });
+</script>
+</body>
+</html>
