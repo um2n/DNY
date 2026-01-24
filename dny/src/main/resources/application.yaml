@@ -2,7 +2,7 @@ spring:
   datasource:
     url: jdbc:mysql://localhost:3306/dny
     username: root
-    password: "0304"
+    password: "3345"
   jpa:
     hibernate:
       ddl-auto: validate
