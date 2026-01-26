@@ -11,7 +11,7 @@ public class Bookmark {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private Long bookmarkId;
 
     private Long userId;
     private String jobId;

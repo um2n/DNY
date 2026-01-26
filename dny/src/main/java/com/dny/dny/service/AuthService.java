@@ -19,12 +19,12 @@ public class AuthService {
     public void signup(SignupRequest request) {
 
         // 아이디 중복 체크
-        if (userRepository.findById(request.getId()).isPresent()) {
+        if (userRepository.findByLoginId(request.getLoginId()).isPresent()) {
             throw new RuntimeException("이미 존재하는 아이디");
         }
 
         User user = new User();
-        user.setId(request.getId());
+        user.setLoginId(request.getLoginId());
         user.setPassword(request.getPassword()); // 추후 암호화
 
         userRepository.save(user);
@@ -33,7 +33,7 @@ public class AuthService {
     // 로그인
     public void login(LoginRequest request) {
 
-        User user = userRepository.findById(request.getId())
+        User user = userRepository.findByLoginId(request.getLoginId())
                 .orElseThrow(() -> new RuntimeException("아이디 없음"));
 
 

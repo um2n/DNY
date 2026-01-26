@@ -8,28 +8,28 @@ public class User {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long uno;
+    private Long userId;
 
     @Column(nullable = false, unique = true)
-    private String id;
+    private String loginId;
 
     @Column(nullable = false)
     private String password;
 
-    public Long getUno() {
-        return uno;
+    public Long getUserId() {
+        return userId;
     }
 
-    public void setUno(Long uno) {
-        this.uno = uno;
+    public void setUserId(Long userId) {
+        this.userId = userId;
     }
 
-    public String getId() {
-        return id;
+    public String getLoginId() {
+        return loginId;
     }
 
-    public void setId(String id) {
-        this.id = id;
+    public void setLoginId(String loginId) {
+        this.loginId = loginId;
     }
 
     public String getPassword() {
