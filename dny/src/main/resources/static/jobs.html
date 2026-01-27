@@ -5,19 +5,65 @@
     <title>공고 목록</title>
 </head>
 <body>
+
 <h2>공고 목록</h2>
 <ul id="list"></ul>
 
 <script>
-    fetch("/jobs/it")
+    /** 1️⃣ 로그인 여부 확인 */
+    fetch("/auth/me")
       .then(res => res.json())
-      .then(data => {
-        data.forEach(job => {
-          const li = document.createElement("li");
-          li.innerText = job.recrutPbancTtl;
-          document.getElementById("list").appendChild(li);
-        });
+      .then(isLogin => {
+        if (!isLogin) {
+          alert("로그인이 필요합니다.");
+          location.href = "/login.html";
+          return;
+        }
+
+        /** 2️⃣ IT 공고 조회 */
+        fetch("/jobs/it")
+          .then(res => res.json())
+          .then(data => {
+            data.forEach(job => {
+              const li = document.createElement("li");
+
+              // 공고 제목
+              const title = document.createElement("span");
+              title.innerText = job.recrutPbancTtl + " ";
+              li.appendChild(title);
+
+              // 공고 링크 (선택)
+              const link = document.createElement("a");
+              link.href = job.srcUrl;
+              link.target = "_blank";
+              link.innerText = "[공고보기] ";
+              li.appendChild(link);
+
+              // 북마크 버튼
+              const btn = document.createElement("button");
+              btn.innerText = "★ 북마크";
+              btn.onclick = () => addBookmark(job.srcUrl);
+
+              li.appendChild(btn);
+              document.getElementById("list").appendChild(li);
+            });
+          });
       });
+
+    /** 3️⃣ 북마크 추가 */
+    function addBookmark(jobId) {
+      fetch("/bookmark/" + encodeURIComponent(jobId), {
+        method: "POST",
+        credentials: "include"
+      }).then(res => {
+        if (res.ok) {
+          alert("북마크 저장 완료");
+        } else {
+          alert("북마크 실패 (로그인 필요)");
+        }
+      });
+    }
 </script>
+
 </body>
 </html>

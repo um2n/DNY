@@ -7,9 +7,9 @@
 <body>
 <h2>회원가입</h2>
 
-<input id="id" placeholder="아이디"><br>
+<input id="loginId" placeholder="아이디"><br>
 <input id="password" type="password" placeholder="비밀번호"><br>
-<button onclick="signup()">가입</button>
+<button onclick="signup()">회원가입</button>
 
 <script>
     function signup() {
@@ -17,10 +17,17 @@
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          id: document.getElementById("id").value,
+          loginId: document.getElementById("loginId").value,
           password: document.getElementById("password").value
         })
-      }).then(() => alert("회원가입 완료"));
+      }).then(res => {
+        if (res.ok) {
+          alert("회원가입 성공! 로그인 해주세요.");
+          location.href = "/login.html";
+        } else {
+          alert("회원가입 실패");
+        }
+      });
     }
 </script>
 </body>

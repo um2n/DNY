@@ -2,6 +2,7 @@ package com.dny.dny.service;
 
 import com.dny.dny.dto.JobApiResponse;
 import com.dny.dny.dto.JobDto;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -16,8 +17,9 @@ public class JobService {
     private static final String BASE_URL =
             "https://apis.data.go.kr/1051000/recruitment/list";
 
-    private static final String SERVICE_KEY =
-            "a220e2b32572f4ab1a598e9556bf649adbbe57b3a95b5c1b84ec4c9a7f01973f";
+    @Value("${job.api.key}")
+    private String serviceKey;
+
     private static final String[] IT_KEYWORDS = {
             "정보", "전산", "it", "소프트웨어", "시스템",
             "데이터", "정보보안", "정보보호", "정보화",
@@ -32,7 +34,7 @@ public class JobService {
 
         String url = UriComponentsBuilder
                 .fromUriString(BASE_URL)
-                .queryParam("serviceKey", SERVICE_KEY)
+                .queryParam("serviceKey", serviceKey)
                 .queryParam("pageNo", 1)
                 .queryParam("numOfRows", 200)
                 .queryParam("resultType", "json")

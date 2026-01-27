@@ -1,9 +1,13 @@
 package com.dny.dny.entity;
 
 import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.Setter;
 
 @Entity
-@Table(name = "user")
+@Table(name = "users")
+@Getter
+@Setter
 public class User {
 
     @Id
@@ -15,28 +19,4 @@ public class User {
 
     @Column(nullable = false)
     private String password;
-
-    public Long getUserId() {
-        return userId;
-    }
-
-    public void setUserId(Long userId) {
-        this.userId = userId;
-    }
-
-    public String getLoginId() {
-        return loginId;
-    }
-
-    public void setLoginId(String loginId) {
-        this.loginId = loginId;
-    }
-
-    public String getPassword() {
-        return password;
-    }
-
-    public void setPassword(String password) {
-        this.password = password;
-    }
 }

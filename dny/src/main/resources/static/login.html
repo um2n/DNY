@@ -7,7 +7,7 @@
 <body>
 <h2>로그인</h2>
 
-<input id="id" placeholder="아이디"><br>
+<input id="loginId" placeholder="아이디"><br>
 <input id="password" type="password" placeholder="비밀번호"><br>
 <button onclick="login()">로그인</button>
 
@@ -17,14 +17,14 @@
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        id: document.getElementById("id").value,
+        loginId: document.getElementById("loginId").value,
         password: document.getElementById("password").value
       })
     }).then(res => {
       if (res.ok) {
         location.href = "/jobs.html";
       } else {
-        alert("로그인 실패");
+        alert("아이디 또는 비밀번호가 틀렸습니다.");
       }
     });
   }
