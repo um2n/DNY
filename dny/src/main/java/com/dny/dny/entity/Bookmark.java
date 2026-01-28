@@ -5,6 +5,9 @@ import lombok.Getter;
 import lombok.Setter;
 
 @Entity
+@Table(
+        uniqueConstraints = @UniqueConstraint(columnNames = {"userId", "jobId"})
+)
 @Getter
 @Setter
 public class Bookmark {
