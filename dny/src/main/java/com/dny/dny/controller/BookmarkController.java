@@ -7,6 +7,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import jakarta.servlet.http.HttpSession;
+
+@CrossOrigin(origins = "http://localhost:5500", allowCredentials = "true")
 
 @RestController
 @RequiredArgsConstructor
@@ -16,21 +19,47 @@ public class BookmarkController {
 
     // 북마크 추가/삭제 토글
     @PostMapping("/bookmark/{jobId}")
-    public String toggleBookmark(@PathVariable String jobId) {
-        bookmarkService.toggleBookmark(jobId);
-        return "북마크 토글 완료";
+    public String toggleBookmark(@PathVariable String jobId,
+                                 HttpSession session) {
+
+
+        Long userId = (Long) session.getAttribute("userId");
+
+        if (userId == null) {
+            throw new RuntimeException("로그인이 필요합니다.");
+        }
+
+        return bookmarkService.toggleBookmark(jobId, userId);
+
+
     }
 
     // 북마크 목록 조회
     @GetMapping("/bookmark")
-    public List<Bookmark> getBookmarks() {
-        return bookmarkService.getBookmarks();
+    public List<Bookmark> getBookmarks(HttpSession session) {
+
+        Long userId = (Long) session.getAttribute("userId");
+
+        if (userId == null) {
+            throw new RuntimeException("로그인이 필요합니다.");
+        }
+
+        return bookmarkService.getBookmarks(userId);
     }
 
-    // 강제 삭제 (관리자용..일단 써둠)
+    // 삭제
     @DeleteMapping("/bookmark/{jobId}")
-    public void deleteBookmark(@PathVariable String jobId) {
-        bookmarkService.deleteBookmark(jobId);
+    public void deleteBookmark(@PathVariable String jobId,
+                               HttpSession session) {
+
+        Long userId = (Long) session.getAttribute("userId");
+
+        if (userId == null) {
+            throw new RuntimeException("로그인이 필요합니다.");
+        }
+
+        bookmarkService.deleteBookmark(jobId, userId);
     }
 }
+
 

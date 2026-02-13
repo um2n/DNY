@@ -6,6 +6,7 @@ import com.dny.dny.service.AuthService;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.web.bind.annotation.*;
 
+
 @RestController
 @RequestMapping("/auth")
 public class AuthController {
@@ -18,8 +19,9 @@ public class AuthController {
 
     // 회원가입
     @PostMapping("/signup")
-    public void signup(@RequestBody SignupRequest request) {
+    public String signup(@RequestBody SignupRequest request) {
         authService.signup(request);
+        return "회원가입 완료";
     }
 
     // 로그인

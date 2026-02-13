@@ -14,6 +14,7 @@ public class AuthService {
     private final UserRepository userRepository;
     private final BCryptPasswordEncoder passwordEncoder;
 
+
     public AuthService(UserRepository userRepository) {
         this.userRepository = userRepository;
         this.passwordEncoder = new BCryptPasswordEncoder();
@@ -32,6 +33,9 @@ public class AuthService {
         user.setPassword(passwordEncoder.encode(request.getPassword()));
 
         userRepository.save(user);
+        System.out.println("loginId = " + request.getLoginId());
+        System.out.println("password = " + request.getPassword());
+
     }
 
     // 로그인

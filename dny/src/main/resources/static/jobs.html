@@ -52,16 +52,17 @@
 
     /** 3️⃣ 북마크 추가 */
     function addBookmark(jobId) {
-      fetch("/bookmark/" + encodeURIComponent(jobId), {
-        method: "POST",
-        credentials: "include"
-      }).then(res => {
-        if (res.ok) {
-          alert("북마크 저장 완료");
-        } else {
-          alert("북마크 실패 (로그인 필요)");
-        }
-      });
+        fetch("/bookmark/" + encodeURIComponent(jobId), {
+            method: "POST",
+            credentials: "include"
+        })
+            .then(res => res.text())   // 🔥 응답 내용 읽기
+            .then(message => {
+                alert(message);        // 🔥 서버가 보낸 메시지 그대로 띄우기
+            })
+            .catch(() => {
+                alert("북마크 실패 (로그인 필요)");
+            });
     }
 </script>
 

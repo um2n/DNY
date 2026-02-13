@@ -1,7 +1,10 @@
 package com.dny.dny.service;
 
+import com.dny.dny.entity.Job;
 import com.dny.dny.dto.JobApiResponse;
 import com.dny.dny.dto.JobDto;
+import com.dny.dny.repository.JobRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
@@ -12,7 +15,9 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 @Service
+@RequiredArgsConstructor
 public class JobService {
+    private final JobRepository jobRepository;
 
     private static final String BASE_URL =
             "https://apis.data.go.kr/1051000/recruitment/list";
@@ -55,6 +60,29 @@ public class JobService {
                 .filter(this::isNotExpired)
                 .toList();
     }
+    public void saveJobsToDb() {
+        List<JobDto> jobs = getItJobs();
+
+        for (JobDto dto : jobs) {
+            Job job = new Job();
+
+            job.setJobId(dto.getRecrutPbancSn());
+            job.setTitle(dto.getRecrutPbancTtl());
+            job.setCompany(dto.getInstNm());
+            job.setLocation(dto.getWorkRgnNmLst());
+            job.setJobType(dto.getRecrutSeNm());
+
+            job.setDeadline(parseDate(dto.getPbancEndYmd()));
+            job.setCreatedAt(parseDate(dto.getPbancBgngYmd()));
+
+            jobRepository.save(job);
+        }
+    } // DB 저장 메서드
+
+    private LocalDate parseDate(String dateStr) {
+        if (dateStr == null) return null;
+        return LocalDate.parse(dateStr, DateTimeFormatter.BASIC_ISO_DATE);
+    } // 날짜 변환 메서드
 
     /** 신입 또는 신입·경력 */
     private boolean isEntry(JobDto job) {
@@ -92,4 +120,36 @@ public class JobService {
 
         return !LocalDate.now().isAfter(endDate);
     }
-}
+
+
+    // 키워드 검색
+    public List<Job> searchJobs(String keyword) {
+        return jobRepository.findByTitleContaining(keyword);
+    }
+
+    // 지역 필터
+    public List<Job> filterByLocation(String location) {
+        return jobRepository.findByLocation(location);
+    }
+
+    // 채용구분 필터
+    public List<Job> filterByJobType(String jobType) {
+        return jobRepository.findByJobType(jobType);
+    }
+
+    // 마감일 임박순
+    public List<Job> sortByDeadline() {
+        return jobRepository.findAllByOrderByDeadlineAsc();
+    }
+
+    // 최신순
+    public List<Job> sortByLatest() {
+        return jobRepository.findAllByOrderByCreatedAtDesc();
+    }
+
+
+
+
+
+    }
+

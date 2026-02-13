@@ -7,6 +7,10 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Optional;
+import com.dny.dny.entity.User;
+import com.dny.dny.repository.UserRepository;
+
+
 
 
 @Service
@@ -14,35 +18,36 @@ import java.util.Optional;
 public class BookmarkService {
 
     private final BookmarkRepository bookmarkRepository;
-    private final Long TEST_USER_ID = 1L;
+    private final UserRepository userRepository;
 
-    public void toggleBookmark(String jobId) {
+    public String toggleBookmark(String jobId, Long userId) {
+
+        userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("사용자 없음"));
 
         Optional<Bookmark> existing =
-                bookmarkRepository.findByUserIdAndJobId(TEST_USER_ID, jobId);
+                bookmarkRepository.findByUserIdAndJobId(userId, jobId);
 
         if (existing.isPresent()) {
-            // 이미 있으면 삭제(중복 방지)
-            bookmarkRepository.delete(existing.get()); // 삭제
-            System.out.println("북마크 삭제됨");
-            return;
+            bookmarkRepository.delete(existing.get());
+            return "북마크 삭제 완료";
         }
 
-        // 없으면 추가
         Bookmark b = new Bookmark();
-        b.setUserId(TEST_USER_ID);
+        b.setUserId(userId);   // ✅ TEST_USER_ID 말고 userId
         b.setJobId(jobId);
         bookmarkRepository.save(b);
-        System.out.println("북마크 저장됨");
 
+        return "북마크 저장 완료";
     }
 
-    public void deleteBookmark(String jobId) {
-        bookmarkRepository.deleteByUserIdAndJobId(TEST_USER_ID, jobId);
+
+    public void deleteBookmark(String jobId, Long userId) {
+        bookmarkRepository.deleteByUserIdAndJobId(userId, jobId);
     }
 
-    public List<Bookmark> getBookmarks() {
-        return bookmarkRepository.findByUserId(TEST_USER_ID);
+    public List<Bookmark> getBookmarks(Long userId) {
+        return bookmarkRepository.findByUserId(userId);
     }
 
 
