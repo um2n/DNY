@@ -23,7 +23,7 @@
             return;
         }
 
-        // 2️⃣ DB 기준 공고 조회 (북마크 포함)
+        // 2️⃣ DB 기준 공고 조회
         fetch("/jobs", {
             credentials: "include"
         })
@@ -52,8 +52,8 @@
                 // 북마크 버튼
                 const btn = document.createElement("button");
 
-                // 현재 북마크 상태 반영
-                btn.innerText = job.bookmarked ? "★ 북마크됨" : "☆ 북마크";
+                // 🔥 초기 상태 반영
+                updateButtonStyle(btn, job.bookmarked);
 
                 btn.onclick = () => {
 
@@ -62,18 +62,19 @@
                         credentials: "include"
                     })
                     .then(res => res.text())
-                    .then(() => {
+                    .then(message => {
 
-                        // 버튼 상태 즉시 변경
-                        if (btn.innerText === "☆ 북마크") {
-                            btn.innerText = "★ 북마크됨";
-                        } else {
-                            btn.innerText = "☆ 북마크";
+                        alert(message); // 서버 메시지 그대로 사용
+
+                        if (message === "북마크 완료") {
+                            updateButtonStyle(btn, true);
+                        } else if (message === "북마크 취소") {
+                            updateButtonStyle(btn, false);
                         }
 
                     })
                     .catch(() => {
-                        alert("북마크 처리 실패");
+                        alert("북마크 실패");
                     });
                 };
 
@@ -82,7 +83,22 @@
             });
         });
     });
+
+    // 🔥 버튼 상태 변경 함수
+    function updateButtonStyle(button, isBookmarked) {
+
+        if (isBookmarked) {
+            button.innerText = "★ 북마크됨";
+            button.style.backgroundColor = "#ffd700";
+            button.style.color = "black";
+        } else {
+            button.innerText = "☆ 북마크";
+            button.style.backgroundColor = "";
+            button.style.color = "";
+        }
+    }
 </script>
+
 
 </body>
 </html>

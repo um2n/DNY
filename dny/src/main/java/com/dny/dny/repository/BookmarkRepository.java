@@ -7,9 +7,10 @@ import java.util.Optional;
 
 public interface BookmarkRepository extends JpaRepository<Bookmark, Long> {
     Optional<Bookmark> findByUserIdAndJobId(Long userId, String jobId);
-
+    boolean existsByUserIdAndJobId(Long userId, String jobId);
     List<Bookmark> findByUserId(Long userID);
 
     void deleteByUserIdAndJobId(Long userId, String jobId);
+
 }
 
