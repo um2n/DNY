@@ -1,23 +1,31 @@
 package com.dny.dny.service;
 
-import com.dny.dny.entity.Job;
 import com.dny.dny.dto.JobApiResponse;
 import com.dny.dny.dto.JobDto;
+import com.dny.dny.dto.JobResponseDto;
+import com.dny.dny.entity.Bookmark;
+import com.dny.dny.entity.Job;
+import com.dny.dny.repository.BookmarkRepository;
 import com.dny.dny.repository.JobRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class JobService {
+
     private final JobRepository jobRepository;
+    private final BookmarkRepository bookmarkRepository;
 
     private static final String BASE_URL =
             "https://apis.data.go.kr/1051000/recruitment/list";
@@ -33,7 +41,33 @@ public class JobService {
     };
 
     /**
-     * IT + 신입 + 접수중 공고 조회
+     * 🔹 DB 기준 공고 조회 + 북마크 여부 포함
+     */
+    public List<JobResponseDto> getJobsWithBookmark(Long userId) {
+
+        List<Job> jobs = jobRepository.findAll();
+
+        Set<String> bookmarkedIds = bookmarkRepository.findByUserId(userId)
+                .stream()
+                .map(Bookmark::getJobId)
+                .collect(Collectors.toSet());
+
+        return jobs.stream()
+                .map(job -> new JobResponseDto(
+                        job.getJobId(),
+                        job.getTitle(),
+                        job.getCompany(),
+                        job.getLocation(),
+                        job.getJobType(),
+                        job.getDeadline(),
+                        job.getCreatedAt(),
+                        bookmarkedIds.contains(job.getJobId())
+                ))
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * 🔹 외부 API 호출
      */
     public List<JobDto> getItJobs() {
 
@@ -41,12 +75,13 @@ public class JobService {
                 .fromUriString(BASE_URL)
                 .queryParam("serviceKey", serviceKey)
                 .queryParam("pageNo", 1)
-                .queryParam("numOfRows", 200)
+                .queryParam("numOfRows", 5)
                 .queryParam("resultType", "json")
-                .build(false)
+                .build()
                 .toUriString();
 
         RestTemplate restTemplate = new RestTemplate();
+
         JobApiResponse response =
                 restTemplate.getForObject(url, JobApiResponse.class);
 
@@ -55,48 +90,66 @@ public class JobService {
         }
 
         return response.getResult().stream()
-                .filter(this::isEntry)
-                .filter(this::isItByTitleOrNcs)
-                .filter(this::isNotExpired)
+                .filter(this::isEntry)               // 신입 포함
+                .filter(this::isItByTitleOrNcs)      // IT 키워드
+                .filter(this::isNotExpired)          // 마감 안 지난 것
                 .toList();
     }
+
+
+
+
+    /**
+     * 🔥 API → DB 저장
+     */
+    @Transactional
     public void saveJobsToDb() {
+
         List<JobDto> jobs = getItJobs();
 
         for (JobDto dto : jobs) {
-            Job job = new Job();
 
-            job.setJobId(dto.getRecrutPbancSn());
+            String jobId = dto.getRecrutPblntSn();
+
+            System.out.println("ID 값: " + jobId);
+
+            if (jobId == null || jobId.isBlank()) {
+                continue;
+            }
+
+            Job job = jobRepository.findById(jobId)
+                    .orElse(new Job());
+
+            job.setJobId(jobId);
             job.setTitle(dto.getRecrutPbancTtl());
             job.setCompany(dto.getInstNm());
             job.setLocation(dto.getWorkRgnNmLst());
             job.setJobType(dto.getRecrutSeNm());
-
             job.setDeadline(parseDate(dto.getPbancEndYmd()));
             job.setCreatedAt(parseDate(dto.getPbancBgngYmd()));
 
             jobRepository.save(job);
         }
-    } // DB 저장 메서드
+
+        System.out.println("공고 DB 저장 완료");
+        System.out.println("API 전체 개수: " + jobs.size());
+    }
 
     private LocalDate parseDate(String dateStr) {
-        if (dateStr == null) return null;
+        if (dateStr == null || dateStr.isBlank()) return null;
         return LocalDate.parse(dateStr, DateTimeFormatter.BASIC_ISO_DATE);
-    } // 날짜 변환 메서드
+    }
 
-    /** 신입 또는 신입·경력 */
     private boolean isEntry(JobDto job) {
         String recrutSe = job.getRecrutSeNm();
         return recrutSe != null && recrutSe.contains("신입");
     }
 
-    /** IT 직무 판단 (제목 OR NCS) */
     private boolean isItByTitleOrNcs(JobDto job) {
         return containsItKeyword(job.getRecrutPbancTtl())
                 || containsItKeyword(job.getNcsCdNmLst());
     }
 
-    /** IT 키워드 포함 여부 */
     private boolean containsItKeyword(String text) {
         if (text == null) return false;
 
@@ -110,7 +163,6 @@ public class JobService {
         return false;
     }
 
-    /** 접수 마감 여부 (오늘 이전 마감 제외) */
     private boolean isNotExpired(JobDto job) {
         String endDateStr = job.getPbancEndYmd();
         if (endDateStr == null) return false;
@@ -121,35 +173,28 @@ public class JobService {
         return !LocalDate.now().isAfter(endDate);
     }
 
-
-    // 키워드 검색
+    // 🔹 검색
     public List<Job> searchJobs(String keyword) {
         return jobRepository.findByTitleContaining(keyword);
     }
 
-    // 지역 필터
+    // 🔹 지역 필터
     public List<Job> filterByLocation(String location) {
         return jobRepository.findByLocation(location);
     }
 
-    // 채용구분 필터
+    // 🔹 직무 필터
     public List<Job> filterByJobType(String jobType) {
         return jobRepository.findByJobType(jobType);
     }
 
-    // 마감일 임박순
+    // 🔹 마감순
     public List<Job> sortByDeadline() {
         return jobRepository.findAllByOrderByDeadlineAsc();
     }
 
-    // 최신순
+    // 🔹 최신순
     public List<Job> sortByLatest() {
         return jobRepository.findAllByOrderByCreatedAtDesc();
     }
-
-
-
-
-
-    }
-
+}
