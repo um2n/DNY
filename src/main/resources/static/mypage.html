@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>마이페이지 - Vue.js</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <style>
+        li { margin-bottom: 10px; list-style: none; border-bottom: 1px solid #eee; padding-bottom: 5px; }
+        button { cursor: pointer; margin-left: 10px; padding: 3px 8px; }
+        .nav { margin-bottom: 20px; }
+    </style>
+</head>
+<body>
+<div id="app">
+    <div class="nav">
+        <button @click="navigate('/index.html')">홈으로</button>
+        <button @click="navigate('/jobs.html')">공고 목록</button>
+    </div>
+
+    <h2>나의 스크랩 목록 (Vue.js)</h2>
+    <ul v-if="bookmarks.length > 0">
+        <li v-for="job in bookmarks" :key="job.jobId">
+            <span><strong>{{ job.title }}</strong> ({{ job.company }})</span>
+            <button @click="removeBookmark(job)">삭제</button>
+        </li>
+    </ul>
+    <p v-else>스크랩한 공고가 없습니다.</p>
+</div>
+
+<script>
+    const { createApp } = Vue;
+    createApp({
+        data() {
+            return {
+                bookmarks: []
+            }
+        },
+        methods: {
+            loadBookmarks() {
+                fetch("/bookmark/my", { credentials: "include" })
+                    .then(res => {
+                        if (res.status === 401) {
+                            alert("로그인이 필요합니다.");
+                            location.href = "/login.html";
+                            return;
+                        }
+                        return res.json();
+                    })
+                    .then(response => {
+                        if (response && response.success) {
+                            this.bookmarks = response.data;
+                        }
+                    })
+                    .catch(err => console.error("로딩 실패:", err));
+            },
+            removeBookmark(job) {
+                if(confirm("스크랩을 취소하시겠습니까?")) {
+                    fetch("/bookmark/" + encodeURIComponent(job.jobId), {
+                        method: "POST",
+                        credentials: "include"
+                    })
+                    .then(res => res.json())
+                    .then(res => {
+                        alert(res.message);
+                        this.loadBookmarks();
+                    });
+                }
+            },
+            navigate(url) {
+                location.href = url;
+            }
+        },
+        mounted() {
+            this.loadBookmarks();
+        }
+    }).mount('#app');
+</script>
+</body>
+</html>
