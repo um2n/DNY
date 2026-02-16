@@ -5,8 +5,14 @@ import com.dny.dny.dto.JobDto;
 import com.dny.dny.dto.JobResponseDto;
 import com.dny.dny.entity.Job;
 import com.dny.dny.repository.JobRepository;
+import jakarta.persistence.criteria.Predicate;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
@@ -23,147 +29,118 @@ public class JobService {
     private final JobRepository jobRepository;
     private final BookmarkService bookmarkService;
 
-    private static final String BASE_URL =
-            "https://apis.data.go.kr/1051000/recruitment/list";
-
-
     @Value("${job.api.key}")
     private String serviceKey;
 
-    /* DB 공고 조회 + 북마크 여부 포함 */
-    public List<JobResponseDto> getJobsWithBookmark(Long userId) {
+    private static final String BASE_URL = "https://apis.data.go.kr/1051000/recruitment/list";
 
-        List<Job> jobs = jobRepository.findAll();
-        Set<String> bookmarkedIds =
-                bookmarkService.getBookmarkedJobIds(userId);
+    /* 통합 공고 조회 (필터링 + 페이징 + 마감기한 체크) */
+    public Page<JobResponseDto> getJobs(String keyword, String location, String jobType, Long userId, Pageable pageable) {
+        
+        Specification<Job> spec = (root, query, cb) -> {
+            List<Predicate> predicates = new ArrayList<>();
+            
+            // 1. 기본 조건: 마감 기한이 오늘 이후거나 없음
+            predicates.add(cb.or(
+                cb.greaterThanOrEqualTo(root.get("deadline"), LocalDate.now()),
+                cb.isNull(root.get("deadline"))
+            ));
 
-        return jobs.stream()
-                .map(job -> new JobResponseDto(
-                        job.getJobId(),
-                        job.getTitle(),
-                        job.getCompany(),
-                        job.getLocation(),
-                        job.getJobType(),
-                        job.getDeadline(),
-                        job.getCreatedAt(),
-                        bookmarkedIds.contains(job.getJobId())
-                ))
-                .toList();
-    }
-
-    /* API 호출 (페이지 제한 방식) */
-    public List<JobDto> getItJobs() {
-
-        RestTemplate restTemplate = new RestTemplate();
-        List<JobDto> allJobs = new ArrayList<>();
-
-        int maxPage = 20;   // 필요 시 조절
-        int size = 100;
-
-        for (int page = 1; page <= maxPage; page++) {
-
-            String url = UriComponentsBuilder
-                    .fromUriString(BASE_URL)
-                    .queryParam("serviceKey", serviceKey)
-                    .queryParam("pageNo", page)
-                    .queryParam("numOfRows", size)
-                    .queryParam("resultType", "json")
-                    .build()
-                    .toUriString();
-
-            JobApiResponse response =
-                    restTemplate.getForObject(url, JobApiResponse.class);
-
-            if (response == null || response.getResult() == null) {
-                break;
+            // 2. 검색어 필터 (제목)
+            if (keyword != null && !keyword.isBlank()) {
+                predicates.add(cb.like(root.get("title"), "%" + keyword + "%"));
             }
 
-            allJobs.addAll(response.getResult());
-        }
+            // 3. 지역 필터
+            if (location != null && !location.isBlank()) {
+                predicates.add(cb.equal(root.get("location"), location));
+            }
 
-        return allJobs.stream()
-                .filter(this::isItNewbieJob)
-                .toList();
+            // 4. 채용 구분 필터
+            if (jobType != null && !jobType.isBlank()) {
+                predicates.add(cb.equal(root.get("jobType"), jobType));
+            }
+
+            return cb.and(predicates.toArray(new Predicate[0]));
+        };
+
+        Page<Job> jobPage = jobRepository.findAll(spec, pageable);
+        return convertToResponseDtoPage(jobPage, userId, pageable);
     }
 
-    /* 서버 시작 시 DB 저장 */
+    private Page<JobResponseDto> convertToResponseDtoPage(Page<Job> jobPage, Long userId, Pageable pageable) {
+        Set<String> bookmarkedIds = bookmarkService.getBookmarkedJobIds(userId);
+        List<JobResponseDto> dtoList = jobPage.getContent().stream()
+                .map(job -> new JobResponseDto(
+                        job.getJobId(), job.getTitle(), job.getCompany(),
+                        job.getLocation(), job.getJobType(), job.getDeadline(),
+                        job.getCreatedAt(), bookmarkedIds.contains(job.getJobId())
+                )).toList();
+        return new PageImpl<>(dtoList, pageable, jobPage.getTotalElements());
+    }
+
+    @Async
     @Transactional
     public void saveJobsToDb() {
-
+        System.out.println("🚀 [Background] 공고 업데이트 시작...");
+        jobRepository.deleteByDeadlineBefore(LocalDate.now());
+        
         List<JobDto> apiJobs = getItJobs();
         if (apiJobs.isEmpty()) return;
 
-        Set<String> existingIds =
-                new HashSet<>(jobRepository.findAllJobIds());
+        Set<String> existingIds = new HashSet<>(jobRepository.findAllJobIds());
+        List<Job> newJobs = apiJobs.stream()
+                .filter(dto -> !existingIds.contains(dto.getRecrutPblntSn()))
+                .map(this::convertToEntity)
+                .toList();
 
-        List<Job> newJobs = new ArrayList<>();
-
-        for (JobDto dto : apiJobs) {
-
-            String jobId = dto.getRecrutPblntSn();
-            if (jobId == null || jobId.isBlank()) continue;
-            if (existingIds.contains(jobId)) continue;
-
-            newJobs.add(convertToEntity(dto));
-        }
-
-        if (!newJobs.isEmpty()) {
-            jobRepository.saveAll(newJobs);
-        }
-
-        System.out.println("신규 저장 개수: " + newJobs.size());
+        if (!newJobs.isEmpty()) jobRepository.saveAll(newJobs);
+        System.out.println("✅ 신규 저장 완료: " + newJobs.size() + "건");
     }
 
-    /* IT + 신입 필터 */
-    private boolean isItNewbieJob(JobDto job) {
+    public List<JobDto> getItJobs() {
+        RestTemplate restTemplate = new RestTemplate();
+        String firstUrl = buildUrl(1, 100);
+        JobApiResponse firstResponse = restTemplate.getForObject(firstUrl, JobApiResponse.class);
+        
+        if (firstResponse == null || firstResponse.getResult() == null) return Collections.emptyList();
 
+        int totalPages = Math.min((int) Math.ceil((double) firstResponse.getTotalCount() / 100), 50);
+        
+        return java.util.stream.IntStream.rangeClosed(1, totalPages)
+                .parallel()
+                .mapToObj(page -> restTemplate.getForObject(buildUrl(page, 100), JobApiResponse.class))
+                .filter(res -> res != null && res.getResult() != null)
+                .flatMap(res -> res.getResult().stream())
+                .filter(this::isItNewbieJob)
+                .filter(job -> {
+                    LocalDate deadline = parseDate(job.getPbancEndYmd());
+                    return deadline == null || !deadline.isBefore(LocalDate.now());
+                }).toList();
+    }
+
+    private String buildUrl(int page, int size) {
+        return UriComponentsBuilder.fromUriString(BASE_URL)
+                .queryParam("serviceKey", serviceKey)
+                .queryParam("pageNo", page)
+                .queryParam("numOfRows", size)
+                .queryParam("resultType", "json")
+                .build().toUriString();
+    }
+
+    private boolean isItNewbieJob(JobDto job) {
         String title = job.getRecrutPbancTtl();
         String type = job.getRecrutSeNm();
-
-        if (title == null || type == null) return false;
-
-        if (!(type.contains("신입"))) {
-            return false;
-        }
-
+        if (title == null || type == null || !type.contains("신입")) return false;
+        
         String lower = title.toLowerCase();
-
-        // 반드시 직무 단위 IT 키워드 포함
-        if (!(lower.contains("전산")
-                || lower.contains("정보보안")
-                || lower.contains("정보보호")
-                || lower.contains("네트워크")
-                || lower.contains("시스템")
-                || lower.contains("서버")
-                || lower.contains("it ")
-                || lower.contains("ict")
-                || lower.contains("정보기술")
-                || lower.contains("사이버보안"))) {
-            return false;
-        }
-
-        // 제외 키워드
-        if (lower.contains("연구")
-                || lower.contains("관리")
-                || lower.contains("AMI")
-                || lower.contains("정비")
-                || lower.contains("운전")
-                || lower.contains("간호")
-                || lower.contains("환경")
-                || lower.contains("미화")
-                || lower.contains("배전")
-                || lower.contains("전력")
-                || lower.contains("기계")) {
-            return false;
-        }
-
-        return true;
+        List<String> keywords = List.of("전산", "정보보안", "정보보호", "네트워크", "시스템", "서버", "it ", "ict", "정보기술", "사이버보안");
+        List<String> exclude = List.of("연구", "관리", "ami", "정비", "운전", "간호", "환경", "미화", "배전", "전력", "기계");
+        
+        return keywords.stream().anyMatch(lower::contains) && exclude.stream().noneMatch(lower::contains);
     }
 
-
-    /* DTO → Entity 변환 */
     private Job convertToEntity(JobDto dto) {
-
         Job job = new Job();
         job.setJobId(dto.getRecrutPblntSn());
         job.setTitle(dto.getRecrutPbancTtl());
@@ -172,36 +149,12 @@ public class JobService {
         job.setJobType(dto.getRecrutSeNm());
         job.setDeadline(parseDate(dto.getPbancEndYmd()));
         job.setCreatedAt(parseDate(dto.getPbancBgngYmd()));
-
         return job;
-    }
-
-    public List<Job> searchJobs(String keyword) {
-        return jobRepository.findByTitleContaining(keyword);
-    }
-
-    public List<Job> filterByLocation(String location) {
-        return jobRepository.findByLocation(location);
-    }
-
-    public List<Job> filterByJobType(String jobType) {
-        return jobRepository.findByJobType(jobType);
-    }
-
-    public List<Job> sortByDeadline() {
-        return jobRepository.findAllByOrderByDeadlineAsc();
-    }
-
-    public List<Job> sortByLatest() {
-        return jobRepository.findAllByOrderByCreatedAtDesc();
     }
 
     private LocalDate parseDate(String dateStr) {
         try {
-            if (dateStr == null || dateStr.isBlank()) return null;
-            return LocalDate.parse(dateStr, DateTimeFormatter.BASIC_ISO_DATE);
-        } catch (Exception e) {
-            return null;
-        }
+            return (dateStr == null || dateStr.isBlank()) ? null : LocalDate.parse(dateStr, DateTimeFormatter.BASIC_ISO_DATE);
+        } catch (Exception e) { return null; }
     }
 }

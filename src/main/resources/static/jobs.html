@@ -12,12 +12,34 @@
 <body>
 
 <h2>공고 목록</h2>
+
+<!-- 정렬 UI 추가 -->
+<div style="margin-bottom: 10px;">
+    <select id="sortSelect" onchange="loadJobs(0)">
+        <option value="createdAt,desc">최신 등록순</option>
+        <option value="deadline,asc">마감 임박순</option>
+    </select>
+</div>
+
 <ul id="list">로드 중...</ul>
 
+<!-- 페이징 버튼 추가 -->
+<div id="pagination" style="margin-top: 20px;">
+    <button id="prevBtn" onclick="changePage(-1)">이전</button>
+    <span id="pageInfo">0 / 0</span>
+    <button id="nextBtn" onclick="changePage(1)">다음</button>
+</div>
+
 <script>
+    let currentPage = 0;
+    let totalPages = 0;
+
     // 1️⃣ 로그인 여부 확인 및 공고 로드
-    function loadJobs() {
-        fetch("/jobs", {
+    function loadJobs(page = 0) {
+        currentPage = page;
+        const sort = document.getElementById("sortSelect").value;
+        
+        fetch(`/jobs?page=${page}&size=10&sort=${sort}`, {
             credentials: "include"
         })
         .then(res => {
@@ -38,9 +60,17 @@
             const list = document.getElementById("list");
             list.innerHTML = "";
 
-            const jobs = response.data;
+            // 페이징 객체에서 content 추출
+            const pageData = response.data;
+            const jobs = pageData.content;
+            totalPages = pageData.page.totalPages;
 
-            if (jobs.length === 0) {
+            // 페이지 정보 업데이트
+            document.getElementById("pageInfo").innerText = `${pageData.page.number + 1} / ${totalPages}`;
+            document.getElementById("prevBtn").disabled = (pageData.page.number === 0);
+            document.getElementById("nextBtn").disabled = (pageData.page.number + 1 >= totalPages);
+
+            if (!jobs || jobs.length === 0) {
                 list.innerHTML = "<li>표시할 공고가 없습니다.</li>";
                 return;
             }
@@ -104,6 +134,13 @@
             button.innerText = "☆ 북마크";
             button.style.backgroundColor = "";
             button.style.color = "";
+        }
+    }
+
+    function changePage(offset) {
+        const newPage = currentPage + offset;
+        if (newPage >= 0 && newPage < totalPages) {
+            loadJobs(newPage);
         }
     }
 
