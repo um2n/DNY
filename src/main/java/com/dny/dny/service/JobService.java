@@ -26,6 +26,7 @@ public class JobService {
     private static final String BASE_URL =
             "https://apis.data.go.kr/1051000/recruitment/list";
 
+
     @Value("${job.api.key}")
     private String serviceKey;
 
