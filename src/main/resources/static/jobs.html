@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>공고 목록</title>
+    <style>
+        /* 간단한 스타일 추가 */
+        li { margin-bottom: 10px; list-style: none; border-bottom: 1px solid #eee; padding-bottom: 5px; }
+        button { cursor: pointer; margin-left: 10px; }
+    </style>
+</head>
+<body>
+
+<h2>공고 목록</h2>
+<ul id="list">로드 중...</ul>
+
+<script>
+    // 1️⃣ 로그인 여부 확인 및 공고 로드
+    function loadJobs() {
+        fetch("/jobs", {
+            credentials: "include"
+        })
+        .then(res => {
+            if (res.status === 401) {
+                alert("로그인이 필요합니다.");
+                location.href = "/login.html";
+                throw new Error("Unauthorized");
+            }
+            return res.json();
+        })
+        .then(response => {
+            // ApiResponse 구조 반영
+            if (!response.success) {
+                alert(response.message);
+                return;
+            }
+
+            const list = document.getElementById("list");
+            list.innerHTML = "";
+
+            const jobs = response.data;
+
+            if (jobs.length === 0) {
+                list.innerHTML = "<li>표시할 공고가 없습니다.</li>";
+                return;
+            }
+
+            jobs.forEach(job => {
+                const li = document.createElement("li");
+
+                const title = document.createElement("span");
+                title.innerHTML = `<strong>${job.title}</strong> (${job.company})`;
+                li.appendChild(title);
+
+                if (job.deadline) {
+                    const deadline = document.createElement("span");
+                    deadline.innerText = ` [마감: ${job.deadline}] `;
+                    li.appendChild(deadline);
+                }
+
+                const btn = document.createElement("button");
+                updateButtonStyle(btn, job.bookmarked);
+
+                btn.onclick = () => {
+                    fetch("/bookmark/" + encodeURIComponent(job.jobId), {
+                        method: "POST",
+                        credentials: "include"
+                    })
+                    .then(res => res.json())
+                    .then(response => {
+                        alert(response.message);
+
+                        if (response.success) {
+                            if (response.message === "북마크 완료") {
+                                updateButtonStyle(btn, true);
+                            } else if (response.message === "북마크 취소") {
+                                updateButtonStyle(btn, false);
+                            }
+                        }
+                    })
+                    .catch(() => {
+                        alert("북마크 처리 중 오류가 발생했습니다.");
+                    });
+                };
+
+                li.appendChild(btn);
+                list.appendChild(li);
+            });
+        })
+        .catch(err => {
+            if (err.message !== "Unauthorized") {
+                console.error("공고 로딩 실패:", err);
+                document.getElementById("list").innerHTML = "공고를 불러오는 데 실패했습니다.";
+            }
+        });
+    }
+
+    function updateButtonStyle(button, isBookmarked) {
+        if (isBookmarked) {
+            button.innerText = "★ 북마크됨";
+            button.style.backgroundColor = "#ffd700";
+            button.style.color = "black";
+        } else {
+            button.innerText = "☆ 북마크";
+            button.style.backgroundColor = "";
+            button.style.color = "";
+        }
+    }
+
+    loadJobs();
+</script>
+
+</body>
+</html>
