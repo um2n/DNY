@@ -13,12 +13,33 @@
 
 <h2>공고 목록</h2>
 
-<!-- 정렬 UI 추가 -->
-<div style="margin-bottom: 10px;">
-    <select id="sortSelect" onchange="loadJobs(0)">
+<!-- 필터 및 검색 UI 추가 -->
+<div style="margin-bottom: 20px; padding: 15px; border: 1px solid #ddd; border-radius: 5px; background-color: #f9f9f9;">
+    <input type="text" id="keywordInput" placeholder="검색어 (예: 개발, 보안)" style="padding: 5px;">
+    
+    <select id="locationSelect" style="padding: 5px;">
+        <option value="">지역 전체</option>
+        <option value="서울">서울</option>
+        <option value="경기">경기</option>
+        <option value="인천">인천</option>
+        <option value="대전">대전</option>
+        <option value="대구">대구</option>
+        <option value="부산">부산</option>
+        <option value="광주">광주</option>
+    </select>
+
+    <select id="typeSelect" style="padding: 5px;">
+        <option value="">채용구분 전체</option>
+        <option value="신입">신입</option>
+        <option value="인턴">인턴</option>
+    </select>
+
+    <select id="sortSelect" onchange="loadJobs(0)" style="padding: 5px;">
         <option value="createdAt,desc">최신 등록순</option>
         <option value="deadline,asc">마감 임박순</option>
     </select>
+
+    <button onclick="loadJobs(0)" style="padding: 5px 15px; background-color: #007bff; color: white; border: none; border-radius: 3px; cursor: pointer;">검색</button>
 </div>
 
 <ul id="list">로드 중...</ul>
@@ -37,9 +58,20 @@
     // 1️⃣ 로그인 여부 확인 및 공고 로드
     function loadJobs(page = 0) {
         currentPage = page;
+        
+        // 필터 값 읽기
+        const keyword = document.getElementById("keywordInput").value;
+        const location = document.getElementById("locationSelect").value;
+        const jobType = document.getElementById("typeSelect").value;
         const sort = document.getElementById("sortSelect").value;
         
-        fetch(`/jobs?page=${page}&size=10&sort=${sort}`, {
+        // URL 파라미터 구성
+        let url = `/jobs?page=${page}&size=10&sort=${sort}`;
+        if (keyword) url += `&keyword=${encodeURIComponent(keyword)}`;
+        if (location) url += `&location=${encodeURIComponent(location)}`;
+        if (jobType) url += `&jobType=${encodeURIComponent(jobType)}`;
+        
+        fetch(url, {
             credentials: "include"
         })
         .then(res => {
