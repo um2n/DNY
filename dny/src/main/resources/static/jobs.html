@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>공고 목록</title>
+</head>
+<body>
+
+<h2>공고 목록</h2>
+<ul id="list"></ul>
+
+<script>
+    // 1️⃣ 로그인 여부 확인
+    fetch("/auth/me", {
+        credentials: "include"
+    })
+    .then(res => res.json())
+    .then(isLogin => {
+
+        if (!isLogin) {
+            alert("로그인이 필요합니다.");
+            location.href = "/login.html";
+            return;
+        }
+
+        // 2️⃣ DB 기준 공고 조회
+        fetch("/jobs", {
+            credentials: "include"
+        })
+        .then(res => res.json())
+        .then(data => {
+
+            const list = document.getElementById("list");
+            list.innerHTML = "";
+
+            data.forEach(job => {
+
+                const li = document.createElement("li");
+
+                // 제목
+                const title = document.createElement("span");
+                title.innerText = job.title + " (" + job.company + ") ";
+                li.appendChild(title);
+
+                // 마감일
+                if (job.deadline) {
+                    const deadline = document.createElement("span");
+                    deadline.innerText = " [마감: " + job.deadline + "] ";
+                    li.appendChild(deadline);
+                }
+
+                // 북마크 버튼
+                const btn = document.createElement("button");
+
+                // 🔥 초기 상태 반영
+                updateButtonStyle(btn, job.bookmarked);
+
+                btn.onclick = () => {
+
+                    fetch("/bookmark/" + encodeURIComponent(job.jobId), {
+                        method: "POST",
+                        credentials: "include"
+                    })
+                    .then(res => res.text())
+                    .then(message => {
+
+                        alert(message); // 서버 메시지 그대로 사용
+
+                        if (message === "북마크 완료") {
+                            updateButtonStyle(btn, true);
+                        } else if (message === "북마크 취소") {
+                            updateButtonStyle(btn, false);
+                        }
+
+                    })
+                    .catch(() => {
+                        alert("북마크 실패");
+                    });
+                };
+
+                li.appendChild(btn);
+                list.appendChild(li);
+            });
+        });
+    });
+
+    // 🔥 버튼 상태 변경 함수
+    function updateButtonStyle(button, isBookmarked) {
+
+        if (isBookmarked) {
+            button.innerText = "★ 북마크됨";
+            button.style.backgroundColor = "#ffd700";
+            button.style.color = "black";
+        } else {
+            button.innerText = "☆ 북마크";
+            button.style.backgroundColor = "";
+            button.style.color = "";
+        }
+    }
+</script>
+
+
+</body>
+</html>
