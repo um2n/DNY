@@ -4,56 +4,43 @@ import com.dny.dny.dto.LoginRequest;
 import com.dny.dny.dto.SignupRequest;
 import com.dny.dny.entity.User;
 import com.dny.dny.repository.UserRepository;
-import jakarta.servlet.http.HttpSession;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
+@RequiredArgsConstructor
 public class AuthService {
 
     private final UserRepository userRepository;
-    private final BCryptPasswordEncoder passwordEncoder;
 
-
-    public AuthService(UserRepository userRepository) {
-        this.userRepository = userRepository;
-        this.passwordEncoder = new BCryptPasswordEncoder();
-    }
-
-    // 회원가입
-    public void signup(SignupRequest request) {
-
-        if (userRepository.findByLoginId(request.getLoginId()).isPresent()) {
-            throw new RuntimeException("이미 존재하는 아이디");
+    /**
+     * 신규 회원 가입 (아이디 중복 체크 포함)
+     */
+    @Transactional
+    public User signup(SignupRequest request) {
+        if (userRepository.existsByLoginId(request.getLoginId())) {
+            throw new RuntimeException("이미 존재하는 아이디입니다.");
         }
 
         User user = new User();
         user.setLoginId(request.getLoginId());
-        //비밀번호 해시
-        user.setPassword(passwordEncoder.encode(request.getPassword()));
+        user.setPassword(request.getPassword()); // 비밀번호 암호화 권장
 
-        userRepository.save(user);
-        System.out.println("loginId = " + request.getLoginId());
-        System.out.println("password = " + request.getPassword());
-
+        return userRepository.save(user);
     }
 
-    // 로그인
-    public void login(LoginRequest request, HttpSession session) {
-
+    /**
+     * 로그인 검증 (아이디 및 비밀번호 확인)
+     */
+    public User login(LoginRequest request) {
         User user = userRepository.findByLoginId(request.getLoginId())
-                .orElseThrow(() -> new RuntimeException("아이디 없음"));
+                .orElseThrow(() -> new RuntimeException("존재하지 않는 사용자입니다."));
 
-        if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
-            throw new RuntimeException("비밀번호 틀림");
+        if (!user.getPassword().equals(request.getPassword())) {
+            throw new RuntimeException("비밀번호가 일치하지 않습니다.");
         }
 
-        // ✔ 로그인 성공 시 세션에 userId 저장
-        session.setAttribute("userId", user.getUserId());
-    }
-
-    // 로그아웃
-    public void logout(HttpSession session) {
-        session.invalidate();
+        return user;
     }
 }

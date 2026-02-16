@@ -16,10 +16,11 @@ public class BookmarkService {
 
     private final BookmarkRepository bookmarkRepository;
 
-    // 북마크 추가/취소 토글
+    /**
+     * 북마크 상태 토글 (존재하면 삭제, 없으면 추가)
+     */
     @Transactional
     public String toggleBookmark(String jobId, Long userId) {
-
         if (bookmarkRepository.existsByUserIdAndJobId(userId, jobId)) {
             bookmarkRepository.deleteByUserIdAndJobId(userId, jobId);
             return "북마크 취소";
@@ -33,12 +34,16 @@ public class BookmarkService {
         return "북마크 완료";
     }
 
-    // 특정 사용자의 북마크 목록 조회
+    /**
+     * 사용자별 북마크 리스트 조회
+     */
     public List<Bookmark> getBookmarks(Long userId) {
         return bookmarkRepository.findByUserId(userId);
     }
 
-    // 특정 사용자의 북마크된 jobId 집합 반환
+    /**
+     * 사용자별 북마크된 공고 ID 세트 조회 (조회 시 북마크 여부 체크용)
+     */
     public Set<String> getBookmarkedJobIds(Long userId) {
         return bookmarkRepository.findByUserId(userId)
                 .stream()
@@ -46,7 +51,9 @@ public class BookmarkService {
                 .collect(Collectors.toSet());
     }
 
-    // 특정 공고 북마크 삭제
+    /**
+     * 특정 공고 북마크 삭제
+     */
     @Transactional
     public void deleteBookmark(String jobId, Long userId) {
         bookmarkRepository.deleteByUserIdAndJobId(userId, jobId);
