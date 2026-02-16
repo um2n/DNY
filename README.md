@@ -1,32 +1,49 @@
-# 🚀 DNY (Dream Next You) - IT 신입 공공 채용 큐레이션
+# 🚀 DNY - 공공 채용공고 조회 서비스
 
-공공데이터포털 API를 활용하여 공공기관의 **IT 직무 신입 채용 정보**만 선별하여 제공하는 웹 서비스입니다.
+DNY(Dream Next You)는 공공데이터 API를 활용하여 IT 직무의 신입 채용 정보를 쉽고 빠르게 조회할 수 있도록 돕는 서비스입니다.
 
-## 📌 주요 기능
+## 📌 프로젝트 개요
+공공기관의 방대한 채용 공고 중 IT 관련 직무와 신입 지원이 가능한 공고만을 정교하게 필터링하여 사용자에게 제공합니다. 복잡한 검색 과정 없이 자신에게 맞는 기회를 놓치지 않도록 돕는 것이 목표입니다.
 
-### ⚡ 고성능 데이터 수집 및 최적화
-- **병렬 수집 (Parallel Processing)**: Java Parallel Stream을 사용하여 수천 건의 공고를 수 초 내에 수집.
-- **트래픽 최적화 (Traffic Saving)**: 첫 페이지만 우선 확인하여 신규 공고가 있을 때만 전체 수집을 진행하는 지능형 업데이트 로직.
-- **비동기 처리 (@Async)**: 서버 부팅 속도에 영향을 주지 않도록 백그라운드에서 데이터 수집 및 정제 수행.
-
-### 🔍 스마트 검색 및 필터링
-- **통합 검색 시스템**: JpaSpecification을 통해 검색어, 지역, 채용구분 필터를 하나의 API로 통합 처리.
-- **IT 신입 필터링**: 제목 키워드 및 채용 유형 분석을 통한 IT 직무 자동 분류.
-- **마감 공고 자동 관리**: 마감 기한이 지난 공고의 자동 제외 및 DB 자동 삭제 로직.
-
-### 💻 현대적인 사용자 경험
-- **Vue.js 기반 UI**: Vanilla JS에서 Vue.js(CDN)로 전환하여 선언적이고 부드러운 화면 전환 제공.
-- **마이페이지(스크랩)**: 관심 공고를 저장하고 관리할 수 있는 북마크 시스템.
-- **페이징 및 정렬**: Spring Data Pagination 기반의 효율적인 데이터 조회 및 최신순/마감순 정렬 지원.
+## ✨ 주요 기능
+- **공공데이터포털 연동**: 최신 공공기관 채용 정보를 실시간으로 수집합니다.
+- **스마트 필터링**: 
+  - **IT 직무 판별**: 정보, 전산, IT, 소프트웨어 등 15개 이상의 핵심 키워드를 기반으로 IT 관련 직무를 자동 분류합니다.
+  - **신입 지원 가능 공고**: 경력직 위주의 공고를 제외하고 '신입' 또는 '신입·경력' 공고만 선별합니다.
+- **사용자 인증**: 회원가입 및 로그인 기능을 제공합니다.
+- **북마크 (개발 중)**: 관심 있는 채용 공고를 저장하고 관리할 수 있습니다.
 
 ## 🛠 기술 스택
-- **Backend**: Java 17, Spring Boot 3.4.x
-- **Frontend**: Vue.js 3 (CDN), HTML5/CSS3
-- **Database**: JPA (Spring Data JPA)
-- **API**: 공공데이터포털(잡알리오) 채용정보 API
+- **Backend**: Java 17, Spring Boot 3.5.9
+- **Database**: MySQL, Spring Data JPA
+- **Frontend**: HTML5, JavaScript (Static resources)
+- **Security**: BCrypt (Password Hashing)
+- **Build Tool**: Gradle
 
 ## 📂 프로젝트 구조
-- `controller/`: REST API 요청 처리 (통합 검색 및 북마크)
-- `service/`: 핵심 비즈니스 로직 (병렬 수집, 필터링, 트래픽 최적화)
-- `repository/`: DB 접근 및 동적 쿼리(Specification) 처리
-- `resources/static/`: Vue.js 기반 프론트엔드 정적 파일
+```text
+src/main/java/com/dny/dny/
+├── controller/    # HTTP 요청 처리 (API 엔드포인트)
+├── service/       # 비즈니스 로직 및 외부 API 연동
+├── repository/    # 데이터베이스 액세스 (JPA)
+├── entity/        # 데이터베이스 테이블 매핑
+└── dto/           # 데이터 전송 객체
+```
+
+## 🚀 시작하기
+1. **Repository 클론**
+   ```bash
+   git clone https://github.com/your-username/DNY-main.git
+   ```
+2. **데이터베이스 설정**
+   - `src/main/resources/application.yaml`에서 MySQL 접속 정보를 설정합니다.
+3. **애플리케이션 실행**
+   ```bash
+   ./gradlew bootRun
+   ```
+
+## 📈 향후 개선 사항
+- **프론트엔드 고도화**: React 또는 Vue.js 도입 및 JavaScript 파일 분리
+- **보안 강화**: Spring Security 및 JWT 도입
+- **알림 기능**: 관심 공고 등록 시 이메일 또는 푸시 알림 제공
+- **테스트 코드**: 단위 테스트 및 통합 테스트 확충

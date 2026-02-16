@@ -2,144 +2,181 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>공고 목록 - Vue.js</title>
-    <!-- Vue 3 CDN 추가 (설치 필요 없음) -->
-    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <title>공고 목록</title>
     <style>
-        li { margin-bottom: 15px; list-style: none; border-bottom: 1px solid #eee; padding-bottom: 10px; }
-        button { cursor: pointer; padding: 5px 10px; margin-left: 5px; }
-        .filter-box { margin-bottom: 20px; padding: 15px; border: 1px solid #ddd; border-radius: 5px; background-color: #f9f9f9; }
-        .pagination { margin-top: 20px; display: flex; align-items: center; gap: 10px; }
-        .bookmarked { background-color: #ffd700; color: black; }
+        /* 간단한 스타일 추가 */
+        li { margin-bottom: 10px; list-style: none; border-bottom: 1px solid #eee; padding-bottom: 5px; }
+        button { cursor: pointer; margin-left: 10px; }
     </style>
 </head>
 <body>
 
-<div id="app">
-    <div style="margin-bottom: 20px;">
-        <button @click="goHome">홈으로</button>
-        <button @click="goMyPage" style="background-color: #ffc107;">마이페이지(스크랩)</button>
-    </div>
+<h2>공고 목록</h2>
 
-    <h2>공고 목록 (Vue.js)</h2>
+<!-- 필터 및 검색 UI 추가 -->
+<div style="margin-bottom: 20px; padding: 15px; border: 1px solid #ddd; border-radius: 5px; background-color: #f9f9f9;">
+    <input type="text" id="keywordInput" placeholder="검색어 (예: 개발, 보안)" style="padding: 5px;">
+    
+    <select id="locationSelect" style="padding: 5px;">
+        <option value="">지역 전체</option>
+        <option value="서울">서울</option>
+        <option value="경기">경기</option>
+        <option value="인천">인천</option>
+        <option value="대전">대전</option>
+        <option value="대구">대구</option>
+        <option value="부산">부산</option>
+        <option value="광주">광주</option>
+    </select>
 
-    <!-- 필터 UI: v-model로 데이터와 실시간 연결 -->
-    <div class="filter-box">
-        <input type="text" v-model="filters.keyword" placeholder="검색어 (예: 개발, 보안)">
-        
-        <select v-model="filters.location">
-            <option value="">지역 전체</option>
-            <option v-for="loc in locations" :key="loc" :value="loc">{{ loc }}</option>
-        </select>
+    <select id="typeSelect" style="padding: 5px;">
+        <option value="">채용구분 전체</option>
+        <option value="신입">신입</option>
+        <option value="인턴">인턴</option>
+    </select>
 
-        <select v-model="filters.jobType">
-            <option value="">채용구분 전체</option>
-            <option value="신입">신입</option>
-            <option value="인턴">인턴</option>
-        </select>
+    <select id="sortSelect" onchange="loadJobs(0)" style="padding: 5px;">
+        <option value="createdAt,desc">최신 등록순</option>
+        <option value="deadline,asc">마감 임박순</option>
+    </select>
 
-        <select v-model="filters.sort" @change="loadJobs(0)">
-            <option value="createdAt,desc">최신 등록순</option>
-            <option value="deadline,asc">마감 임박순</option>
-        </select>
+    <button onclick="loadJobs(0)" style="padding: 5px 15px; background-color: #007bff; color: white; border: none; border-radius: 3px; cursor: pointer;">검색</button>
+</div>
 
-        <button @click="loadJobs(0)" style="background-color: #007bff; color: white; border: none;">검색</button>
-    </div>
+<ul id="list">로드 중...</ul>
 
-    <!-- 공고 목록: v-for로 데이터 반복 출력 -->
-    <ul v-if="jobs.length > 0">
-        <li v-for="job in jobs" :key="job.jobId">
-            <span>
-                <strong>{{ job.title }}</strong> ({{ job.company }})
-                <span v-if="job.deadline"> [마감: {{ job.deadline }}] </span>
-            </span>
-            <button 
-                :class="{ 'bookmarked': job.bookmarked }"
-                @click="toggleBookmark(job)"
-            >
-                {{ job.bookmarked ? '★ 북마크됨' : '☆ 북마크' }}
-            </button>
-        </li>
-    </ul>
-    <p v-else>표시할 공고가 없습니다.</p>
-
-    <!-- 페이징: 데이터 상태에 따라 자동으로 활성/비활성 -->
-    <div class="pagination" v-if="totalPages > 0">
-        <button :disabled="currentPage === 0" @click="changePage(-1)">이전</button>
-        <span>{{ currentPage + 1 }} / {{ totalPages }}</span>
-        <button :disabled="currentPage + 1 >= totalPages" @click="changePage(1)">다음</button>
-    </div>
+<!-- 페이징 버튼 추가 -->
+<div id="pagination" style="margin-top: 20px;">
+    <button id="prevBtn" onclick="changePage(-1)">이전</button>
+    <span id="pageInfo">0 / 0</span>
+    <button id="nextBtn" onclick="changePage(1)">다음</button>
 </div>
 
 <script>
-    const { createApp } = Vue;
+    let currentPage = 0;
+    let totalPages = 0;
 
-    createApp({
-        data() {
-            return {
-                jobs: [],
-                currentPage: 0,
-                totalPages: 0,
-                locations: ['서울', '경기', '인천', '대전', '대구', '부산', '광주'],
-                filters: {
-                    keyword: '',
-                    location: '',
-                    jobType: '',
-                    sort: 'createdAt,desc'
-                }
+    // 1️⃣ 로그인 여부 확인 및 공고 로드
+    function loadJobs(page = 0) {
+        currentPage = page;
+        
+        // 필터 값 읽기
+        const keyword = document.getElementById("keywordInput").value;
+        const location = document.getElementById("locationSelect").value;
+        const jobType = document.getElementById("typeSelect").value;
+        const sort = document.getElementById("sortSelect").value;
+        
+        // URL 파라미터 구성
+        let url = `/jobs?page=${page}&size=10&sort=${sort}`;
+        if (keyword) url += `&keyword=${encodeURIComponent(keyword)}`;
+        if (location) url += `&location=${encodeURIComponent(location)}`;
+        if (jobType) url += `&jobType=${encodeURIComponent(jobType)}`;
+        
+        fetch(url, {
+            credentials: "include"
+        })
+        .then(res => {
+            if (res.status === 401) {
+                alert("로그인이 필요합니다.");
+                location.href = "/login.html";
+                throw new Error("Unauthorized");
             }
-        },
-        methods: {
-            loadJobs(page = 0) {
-                this.currentPage = page;
-                const { keyword, location, jobType, sort } = this.filters;
-                
-                let url = `/jobs?page=${page}&size=10&sort=${sort}`;
-                if (keyword) url += `&keyword=${encodeURIComponent(keyword)}`;
-                if (location) url += `&location=${encodeURIComponent(location)}`;
-                if (jobType) url += `&jobType=${encodeURIComponent(jobType)}`;
+            return res.json();
+        })
+        .then(response => {
+            // ApiResponse 구조 반영
+            if (!response.success) {
+                alert(response.message);
+                return;
+            }
 
-                fetch(url, { credentials: "include" })
-                    .then(res => {
-                        if (res.status === 401) {
-                            alert("로그인이 필요합니다.");
-                            location.href = "/login.html";
-                            return;
-                        }
-                        return res.json();
+            const list = document.getElementById("list");
+            list.innerHTML = "";
+
+            // 페이징 객체에서 content 추출
+            const pageData = response.data;
+            const jobs = pageData.content;
+            totalPages = pageData.page.totalPages;
+
+            // 페이지 정보 업데이트
+            document.getElementById("pageInfo").innerText = `${pageData.page.number + 1} / ${totalPages}`;
+            document.getElementById("prevBtn").disabled = (pageData.page.number === 0);
+            document.getElementById("nextBtn").disabled = (pageData.page.number + 1 >= totalPages);
+
+            if (!jobs || jobs.length === 0) {
+                list.innerHTML = "<li>표시할 공고가 없습니다.</li>";
+                return;
+            }
+
+            jobs.forEach(job => {
+                const li = document.createElement("li");
+
+                const title = document.createElement("span");
+                title.innerHTML = `<strong>${job.title}</strong> (${job.company})`;
+                li.appendChild(title);
+
+                if (job.deadline) {
+                    const deadline = document.createElement("span");
+                    deadline.innerText = ` [마감: ${job.deadline}] `;
+                    li.appendChild(deadline);
+                }
+
+                const btn = document.createElement("button");
+                updateButtonStyle(btn, job.bookmarked);
+
+                btn.onclick = () => {
+                    fetch("/bookmark/" + encodeURIComponent(job.jobId), {
+                        method: "POST",
+                        credentials: "include"
                     })
+                    .then(res => res.json())
                     .then(response => {
-                        if (response && response.success) {
-                            this.jobs = response.data.content;
-                            this.totalPages = response.data.page.totalPages;
+                        alert(response.message);
+
+                        if (response.success) {
+                            if (response.message === "북마크 완료") {
+                                updateButtonStyle(btn, true);
+                            } else if (response.message === "북마크 취소") {
+                                updateButtonStyle(btn, false);
+                            }
                         }
                     })
-                    .catch(err => console.error("로딩 실패:", err));
-            },
-            toggleBookmark(job) {
-                fetch("/bookmark/" + encodeURIComponent(job.jobId), {
-                    method: "POST",
-                    credentials: "include"
-                })
-                .then(res => res.json())
-                .then(response => {
-                    if (response.success) {
-                        alert(response.message);
-                        // 데이터만 수정하면 화면은 자동으로 바뀜!
-                        job.bookmarked = !job.bookmarked;
-                    }
-                });
-            },
-            changePage(offset) {
-                this.loadJobs(this.currentPage + offset);
-            },
-            goHome() { location.href = '/index.html'; },
-            goMyPage() { location.href = '/mypage.html'; }
-        },
-        mounted() {
-            this.loadJobs();
+                    .catch(() => {
+                        alert("북마크 처리 중 오류가 발생했습니다.");
+                    });
+                };
+
+                li.appendChild(btn);
+                list.appendChild(li);
+            });
+        })
+        .catch(err => {
+            if (err.message !== "Unauthorized") {
+                console.error("공고 로딩 실패:", err);
+                document.getElementById("list").innerHTML = "공고를 불러오는 데 실패했습니다.";
+            }
+        });
+    }
+
+    function updateButtonStyle(button, isBookmarked) {
+        if (isBookmarked) {
+            button.innerText = "★ 북마크됨";
+            button.style.backgroundColor = "#ffd700";
+            button.style.color = "black";
+        } else {
+            button.innerText = "☆ 북마크";
+            button.style.backgroundColor = "";
+            button.style.color = "";
         }
-    }).mount('#app');
+    }
+
+    function changePage(offset) {
+        const newPage = currentPage + offset;
+        if (newPage >= 0 && newPage < totalPages) {
+            loadJobs(newPage);
+        }
+    }
+
+    loadJobs();
 </script>
 </body>
 </html>

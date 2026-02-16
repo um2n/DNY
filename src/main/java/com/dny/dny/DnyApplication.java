@@ -22,7 +22,7 @@ public class DnyApplication {
 	@Bean
 	public CommandLineRunner run(JobService jobService) {
 		return args -> {
-			System.out.println("서버 시작");
+			System.out.println("🔥 서버 시작 → 공고 저장 실행");
 			jobService.saveJobsToDb();
 		};
 	}

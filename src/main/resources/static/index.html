@@ -1,31 +1,15 @@
 <!DOCTYPE html>
+<!-- Gemini CLI가 다윤님의 인텔리제이에 직접 코드를 수정하는 테스트 주석입니다. -->
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>메인 - Vue.js</title>
-    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
-    <style>
-        button { padding: 10px 20px; margin: 5px; cursor: pointer; }
-    </style>
+    <title>메인</title>
 </head>
 <body>
-<div id="app">
-    <h2>공공기관 채용 공고 서비스</h2>
-    <button @click="navigate('/signup.html')">회원가입</button>
-    <button @click="navigate('/login.html')">로그인</button>
-    <button @click="navigate('/jobs.html')">공고 전체보기</button>
-    <button @click="navigate('/mypage.html')" style="background-color: #ffc107;">마이페이지(스크랩)</button>
-</div>
+<h2>공공기관 채용 공고 서비스</h2>
 
-<script>
-    const { createApp } = Vue;
-    createApp({
-        methods: {
-            navigate(url) {
-                location.href = url;
-            }
-        }
-    }).mount('#app');
-</script>
+<button onclick="location.href='/signup.html'">회원가입</button>
+<button onclick="location.href='/login.html'">로그인</button>
+
 </body>
 </html>

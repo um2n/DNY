@@ -1,10 +1,8 @@
 package com.dny.dny.controller;
 
 import com.dny.dny.dto.ApiResponse;
-import com.dny.dny.dto.JobResponseDto;
 import com.dny.dny.entity.Bookmark;
 import com.dny.dny.service.BookmarkService;
-import com.dny.dny.service.JobService;
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
@@ -18,14 +16,6 @@ import java.util.List;
 public class BookmarkController {
 
     private final BookmarkService bookmarkService;
-    private final JobService jobService;
-
-    /* 북마크된 공고 상세 정보 목록 조회 (마이페이지용) */
-    @GetMapping("/my")
-    public ApiResponse<List<JobResponseDto>> getMyBookmarks(HttpSession session) {
-        Long userId = getLoginUserId(session);
-        return ApiResponse.success(jobService.getMyBookmarkedJobs(userId));
-    }
 
     /* 북마크 토글 (추가 / 취소) */
     @PostMapping("/{jobId}")
