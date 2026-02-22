@@ -32,10 +32,6 @@ public class AuthService {
         //비밀번호 해시
         user.setPassword(passwordEncoder.encode(request.getPassword()));
 
-        userRepository.save(user);
-        System.out.println("loginId = " + request.getLoginId());
-        System.out.println("password = " + request.getPassword());
-
     }
 
     // 로그인
