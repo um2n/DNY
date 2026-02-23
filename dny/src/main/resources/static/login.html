@@ -16,15 +16,19 @@
     fetch("/auth/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
+      credentials: "include",
       body: JSON.stringify({
         loginId: document.getElementById("loginId").value,
         password: document.getElementById("password").value
       })
-    }).then(res => {
+    }).then(async res => {
+      const msg = await res.text();
+
       if (res.ok) {
+        alert(msg);
         location.href = "/jobs.html";
       } else {
-        alert("아이디 또는 비밀번호가 틀렸습니다.");
+        alert(msg);
       }
     });
   }

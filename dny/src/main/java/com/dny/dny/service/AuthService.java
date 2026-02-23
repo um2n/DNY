@@ -32,6 +32,8 @@ public class AuthService {
         //비밀번호 해시
         user.setPassword(passwordEncoder.encode(request.getPassword()));
 
+        userRepository.save(user);
+
     }
 
     // 로그인
